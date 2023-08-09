@@ -1,0 +1,44 @@
+# doc: https://skaffold.dev/docs/references/yaml
+apiVersion: skaffold/v4beta5
+kind: Config
+
+profiles:
+  - name: dev
+    build:
+      tagPolicy:
+        gitCommit: {}
+      artifacts:
+        - image: ddd-gin-admin
+          docker:
+            dockerfile: dev.Dockerfile
+#          sync:
+#            manual:
+#              - src: 'configs/*'
+#                dest: "/"
+    deploy:
+      statusCheckDeadlineSeconds: 120
+      helm:
+        releases:
+          - name: mariadb
+            repo: https://charts.bitnami.com/bitnami
+            remoteChart: mariadb
+            version: 11.5.1
+            namespace: mariadb
+            wait: true
+            createNamespace: true
+            setValues:
+              auth.database: ddd-gin-admin
+              auth.rootPassword: password#123
+          - name: ddd-gin-admin
+            repo: https://linzhengen.github.io/helm-charts
+            remoteChart: web
+            version: 0.1.4
+            namespace: ddd-gin-admin
+            createNamespace: true
+            setValueTemplates:
+              image.repository: "{{.IMAGE_NAME}}"
+              image.tag: "{{.IMAGE_TAG}}"
+            valuesFiles:
+              - ./helm/values/base.values.yaml
+              - ./helm/values/local.values.yaml
+
